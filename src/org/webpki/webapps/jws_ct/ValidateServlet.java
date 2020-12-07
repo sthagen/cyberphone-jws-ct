@@ -14,13 +14,11 @@
  *  limitations under the License.
  *
  */
-package org.webpki.webapps.jws_jcs;
+package org.webpki.webapps.jws_ct;
 
 import java.io.IOException;
 
 import java.security.cert.X509Certificate;
-
-import java.util.Vector;
 
 import java.util.logging.Logger;
 
@@ -66,48 +64,23 @@ public class ValidateServlet extends HttpServlet {
             if (!request.getContentType().startsWith("application/x-www-form-urlencoded")) {
                 throw new IOException("Unexpected MIME type:" + request.getContentType());
             }
-            logger.info("JSON Signature Verification Entered");
-            // Get the two input data items
-            String signedJsonObject = CreateServlet.getParameter(request, JWS_OBJECT);
+
+            // Get the three input data items
+            JSONObjectReader parsedObject = JSONParser.parse(
+                    CreateServlet.getParameter(request, JWS_OBJECT));
             String validationKey = CreateServlet.getParameter(request, JWS_VALIDATION_KEY);
             String signatureLabel = CreateServlet.getParameter(request, JWS_SIGN_LABL);
 
-            // Parse the JSON data
-            JSONObjectReader parsedObject = JSONParser.parse(signedJsonObject);
-            
             // Create a pretty-printed JSON object without canonicalization
             String prettySignature = parsedObject.serializeToString(JSONOutputFormats.PRETTY_HTML);
-            Vector<String> tokens = 
-                    new JSONTokenExtractor().getTokens(signedJsonObject);
-            int fromIndex = 0;
-            for (String token : tokens) {
-                int start = prettySignature.indexOf("<span ", fromIndex);
-                int stop = prettySignature.indexOf("</span>", start);
-                // <span style="color:#C00000">
-                prettySignature = prettySignature.substring(0, 
-                                                            start + 28) + 
-                                                              token + 
-                                                              prettySignature.substring(stop);
-                fromIndex = start + 1;
-            }
             
             // Now begin the real work...
             
-            // Note: some of the stuff here is unnecessary if you use
-            // the JWS/CT validation method but it hides the data we need for
-            // illustrating the function
-
             // Decode
             JwsDecoder jwsDecoder = new JwsDecoder(parsedObject, signatureLabel);
-
-            // Get the embedded (detached) JWS signature
+            
+            // For demo purposes only
             String jwsString = parsedObject.getString(signatureLabel);
-            
-            // Remove the signature property
-            parsedObject.removeProperty(signatureLabel);
-            
-            // Get the actual signed data.  Of course using RFC 8785 :)
-            byte[] jwsPayload = parsedObject.serializeToBytes(JSONOutputFormats.CANONICALIZED);
 
             X509Certificate[] certificatePath = jwsDecoder.getOptionalCertificatePath();
             StringBuilder certificateData = null;
@@ -135,16 +108,19 @@ public class ValidateServlet extends HttpServlet {
                                                                               :
                         PEMDecoder.getPublicKey(validationKey.getBytes("utf-8")));
             }
-            jwsValidator.validateSignature(jwsDecoder);
+            jwsValidator.validate(jwsDecoder);
             StringBuilder html = new StringBuilder(
                     "<div class='header'> Signature Successfully Validated</div>")
                 .append(HTML.fancyBox("signed", 
                                       prettySignature, 
-                                      "JSON object signed by an embedded JWS element"))           
+                                      "\"Pretty-printed\" JWS/CT object"))           
                 .append(HTML.fancyBox("header", 
-                                      jwsDecoder.getJwsProtectedHeader().serializeToString(
-                                              JSONOutputFormats.PRETTY_HTML),
+                                      jwsDecoder.getJwsHeaderAsString(),
                                       "Decoded JWS header"))
+                .append(HTML.fancyBox("canonical", 
+                                      HTML.encode(new String(jwsDecoder.getPayload(), "utf-8")),
+                                      "Canonical (RFC 8785) version of the signed JSON data " +
+                                        "(\"JWS Payload\")"))
                 .append(HTML.fancyBox("vkey",
                                       jwkValidationKey ? 
                                           JSONParser.parse(validationKey)
@@ -156,12 +132,7 @@ public class ValidateServlet extends HttpServlet {
                                              "secret key in hexadecimal" :
                                              "public key in " + 
                                              (jwkValidationKey ? "JWK" : "PEM") +
-                                             " format")))
-                .append(HTML.fancyBox("canonical", 
-                                      HTML.encode(new String(jwsPayload, "utf-8")),
-                                      "Canonical version of the JSON data " +
-                                        "(with possible line breaks " +
-                                        "for display purposes only)"));
+                                             " format")));
             if (certificateData != null) {
                 html.append(HTML.fancyBox("certpath", 
                                           certificateData.toString(),
@@ -170,7 +141,7 @@ public class ValidateServlet extends HttpServlet {
             html.append(HTML.fancyBox("original", 
                                       new StringBuilder(jwsString)
                                         .insert(jwsString.indexOf('.') + 1, 
-                                                Base64URL.encode(jwsPayload)).toString(),
+                                                Base64URL.encode(jwsDecoder.getPayload())).toString(),
           "Finally (as a reference only...), the same object expressed as a standard JWS"));
 
             // Finally, print it out
@@ -189,12 +160,12 @@ public class ValidateServlet extends HttpServlet {
             .append(HTML.fancyText(true,
                 JWS_OBJECT,
                 10, 
-                HTML.encode(JWSJCSService.sampleSignature),
+                HTML.encode(JwsCtService.sampleSignature),
                 "Paste a signed JSON object in the text box or try with the default"))
             .append(HTML.fancyText(true,
                 JWS_VALIDATION_KEY,
                 4, 
-                HTML.encode(JWSJCSService.samplePublicKey),
+                HTML.encode(JwsCtService.samplePublicKey),
                             "Validation key (secret key in hexadecimal or public " +
                               "key in PEM or &quot;plain&quot; JWK format)"))
             .append(HTML.fancyText(true,

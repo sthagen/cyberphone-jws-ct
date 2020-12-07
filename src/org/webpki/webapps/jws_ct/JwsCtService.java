@@ -14,7 +14,7 @@
  *  limitations under the License.
  *
  */
-package org.webpki.webapps.jws_jcs;
+package org.webpki.webapps.jws_ct;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -30,7 +30,7 @@ import javax.servlet.ServletContextListener;
 import org.webpki.crypto.AlgorithmPreferences;
 import org.webpki.crypto.AsymSignatureAlgorithms;
 import org.webpki.crypto.CustomCryptoProvider;
-import org.webpki.crypto.MACAlgorithms;
+import org.webpki.crypto.HmacAlgorithms;
 import org.webpki.crypto.SignatureAlgorithms;
 
 import org.webpki.jose.jws.JwsAsymKeySigner;
@@ -44,9 +44,9 @@ import org.webpki.util.PEMDecoder;
 
 import org.webpki.webutil.InitPropertyReader;
 
-public class JWSJCSService extends InitPropertyReader implements ServletContextListener {
+public class JwsCtService extends InitPropertyReader implements ServletContextListener {
 
-    static Logger logger = Logger.getLogger(JWSJCSService.class.getName());
+    static Logger logger = Logger.getLogger(JwsCtService.class.getName());
 
     static String sampleSignature;
     
@@ -156,9 +156,9 @@ public class JWSJCSService extends InitPropertyReader implements ServletContextL
                           .addKey(AsymSignatureAlgorithms.RSAPSS_SHA384, null)
                           .addKey(AsymSignatureAlgorithms.RSAPSS_SHA512, null).toString() +
                     new KeyDeclaration(KeyDeclaration.SECRET_KEYS, "bitkey.hex")
-                          .addKey(MACAlgorithms.HMAC_SHA256,             "a256")
-                          .addKey(MACAlgorithms.HMAC_SHA384,             "a384")
-                          .addKey(MACAlgorithms.HMAC_SHA512,             "a512").toString();
+                          .addKey(HmacAlgorithms.HMAC_SHA256,            "a256")
+                          .addKey(HmacAlgorithms.HMAC_SHA384,            "a384")
+                          .addKey(HmacAlgorithms.HMAC_SHA512,            "a512").toString();
 
             /////////////////////////////////////////////////////////////////////////////////////////////
             // Sample signature for verification
@@ -166,10 +166,11 @@ public class JWSJCSService extends InitPropertyReader implements ServletContextL
             String sampleDataToSign = getEmbeddedResourceString("sample-data-to-sign.json");
             PrivateKey samplePrivateKey = 
                     PEMDecoder.getPrivateKey(getEmbeddedResource("p256privatekey.pem"));
-            String jwsString = new JwsAsymKeySigner(samplePrivateKey, AsymSignatureAlgorithms.ECDSA_SHA256)
-                    .createSignature(JSONParser.parse(sampleDataToSign)
-                                        .serializeToBytes(JSONOutputFormats.CANONICALIZED),
-                                     true);
+            String jwsString = new JwsAsymKeySigner(samplePrivateKey,
+                                                    AsymSignatureAlgorithms.ECDSA_SHA256)
+                    .sign(JSONParser.parse(sampleDataToSign)
+                            .serializeToBytes(JSONOutputFormats.CANONICALIZED),
+                          true);
             String signature = 
                     new JSONObjectWriter()
                         .setString(CreateServlet.DEFAULT_SIG_LBL, 

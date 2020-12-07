@@ -14,7 +14,7 @@
  *  limitations under the License.
  *
  */
-package org.webpki.webapps.jws_jcs;
+package org.webpki.webapps.jws_ct;
 
 import java.io.IOException;
 
@@ -32,7 +32,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.webpki.crypto.AlgorithmPreferences;
 import org.webpki.crypto.AsymSignatureAlgorithms;
-import org.webpki.crypto.MACAlgorithms;
+import org.webpki.crypto.HmacAlgorithms;
 import org.webpki.crypto.SignatureAlgorithms;
 
 import org.webpki.jose.jws.JwsAsymKeySigner;
@@ -129,7 +129,7 @@ public class CreateServlet extends HttpServlet {
             throws IOException, ServletException {
         String selected = "ES256";
         StringBuilder js = new StringBuilder("'use strict';\n")
-            .append(JWSJCSService.keyDeclarations);
+            .append(JwsCtService.keyDeclarations);
         StringBuilder html = new StringBuilder(
                 "<form name='shoot' method='POST' action='create'>" +
                 "<div class='header'>JSON Signature Creation</div>" +
@@ -145,9 +145,9 @@ public class CreateServlet extends HttpServlet {
                    "<div class='sigparmhead'>Signature Parameters</div>" +
                  "</div><div style='display:flex;align-items:center'>")
             .append(new SelectAlg(selected)
-                 .add(MACAlgorithms.HMAC_SHA256)
-                 .add(MACAlgorithms.HMAC_SHA384)
-                 .add(MACAlgorithms.HMAC_SHA512)
+                 .add(HmacAlgorithms.HMAC_SHA256)
+                 .add(HmacAlgorithms.HMAC_SHA384)
+                 .add(HmacAlgorithms.HMAC_SHA512)
                  .add(AsymSignatureAlgorithms.ED25519)
                  .add(AsymSignatureAlgorithms.ED448)
                  .add(AsymSignatureAlgorithms.ECDSA_SHA256)
@@ -237,17 +237,17 @@ public class CreateServlet extends HttpServlet {
             "    disableAndClearCheckBox('" + FLG_CERT_PATH + "');\n" +
             "    disableAndClearCheckBox('" + FLG_JWK_INLINE + "');\n" +
             "    fill('" + PRM_SECRET_KEY + "', alg, " + 
-                 JWSJCSService.KeyDeclaration.SECRET_KEYS + ", unconditionally);\n" +
+                 JwsCtService.KeyDeclaration.SECRET_KEYS + ", unconditionally);\n" +
             "    showSec(true)\n" +
             "  } else {\n" +
             "    showSec(false)\n" +
             "    enableCheckBox('" + FLG_CERT_PATH + "');\n" +
             "    enableCheckBox('" + FLG_JWK_INLINE + "');\n" +
             "    fill('" + PRM_PRIVATE_KEY + "', alg, " + 
-            JWSJCSService.KeyDeclaration.PRIVATE_KEYS + ", unconditionally);\n" +
+            JwsCtService.KeyDeclaration.PRIVATE_KEYS + ", unconditionally);\n" +
             "    showPriv(true);\n" +
             "    fill('" + PRM_CERT_PATH + "', alg, " + 
-            JWSJCSService.KeyDeclaration.CERTIFICATES + ", unconditionally);\n" +
+            JwsCtService.KeyDeclaration.CERTIFICATES + ", unconditionally);\n" +
             "    showCert(document.getElementById('" + FLG_CERT_PATH + "').checked);\n" +
             "  }\n" +
             "}\n" +
@@ -344,7 +344,7 @@ public class CreateServlet extends HttpServlet {
             // Get wanted signature algorithm
             String algorithmParam = getParameter(request, PRM_ALGORITHM);
             SignatureAlgorithms signatureAlgorithm = algorithmParam.startsWith("HS") ?
-                    MACAlgorithms.getAlgorithmFromId(algorithmParam, 
+                    HmacAlgorithms.getAlgorithmFromId(algorithmParam, 
                                                      AlgorithmPreferences.JOSE)
                                                                             :
                     AsymSignatureAlgorithms.getAlgorithmFromId(algorithmParam, 
@@ -358,7 +358,7 @@ public class CreateServlet extends HttpServlet {
             if (signatureAlgorithm.isSymmetric()) {
                 validationKey = getParameter(request, PRM_SECRET_KEY);
                 jwsSigner = new JwsHmacSigner(DebugFormatter.getByteArrayFromHex(validationKey),
-                                              (MACAlgorithms)signatureAlgorithm);
+                                              (HmacAlgorithms)signatureAlgorithm);
             } else {
                 // To simplify UI we require PKCS #8 with the public key embedded
                 // but we also support JWK which also has the public key
@@ -401,7 +401,7 @@ public class CreateServlet extends HttpServlet {
 
             // Note: we didn't use the JWS/CT API method because it hides
             // the data needed for illustrating the function.
-            String jwsString = jwsSigner.createSignature(jwsPayload, true);
+            String jwsString = jwsSigner.sign(jwsPayload, true);
 
             // Create the completed object
             String signedJsonObject = new JSONObjectWriter(reader)
@@ -409,22 +409,11 @@ public class CreateServlet extends HttpServlet {
                 .serializeToString(JSONOutputFormats.NORMALIZED);
             
             // How things should appear in a "regular" JWS
-            if (JWSJCSService.logging) {
+            if (JwsCtService.logging) {
                 logger.info(jwsString.substring(0, jwsString.lastIndexOf('.')) +
                             Base64URL.encode(jwsPayload) +
                             jwsString.substring(jwsString.lastIndexOf('.')));
             }
-
-            // The following is just for the demo.  That is, we want to preserve
-            // the original ("untouched") JSON data for educational purposes.
-            int i = signedJsonObject.lastIndexOf("\"" + signatureLabel);
-            if (signedJsonObject.charAt(i - 1) == ',') {
-                i--;
-            }
-            int j = jsonData.lastIndexOf("}");
-            signedJsonObject = jsonData.substring(0, j) + 
-                    signedJsonObject.substring(i, signedJsonObject.length() - 1) +
-                    jsonData.substring(j);
 
             // We terminate by validating the signature as well
             request.getRequestDispatcher((jsFlag ? "jssignature?" : "validate?") +
