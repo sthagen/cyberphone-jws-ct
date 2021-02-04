@@ -41,7 +41,6 @@ import org.webpki.jose.jws.JwsAsymSignatureValidator;
 import org.webpki.jose.jws.JwsDecoder;
 
 import org.webpki.util.Base64URL;
-import org.webpki.util.DebugFormatter;
 import org.webpki.util.PEMDecoder;
 
 public class ValidateServlet extends HttpServlet {
@@ -89,11 +88,10 @@ public class ValidateServlet extends HttpServlet {
                     if (certificateData == null) {
                         certificateData = new StringBuilder();
                     } else {
-                        certificateData.append("<br>&nbsp;<br>");
+                        certificateData.append("\n\n");
                     }
-                    certificateData.append(
-                        HTML.encode(new CertificateInfo(certificate).toString())
-                            .replace("\n", "<br>").replace("  ", ""));
+                    certificateData.append(new CertificateInfo(certificate).toString()
+                        .replace("  ", ""));
                 }
             }
             
@@ -101,7 +99,7 @@ public class ValidateServlet extends HttpServlet {
             JwsValidator jwsValidator;
             boolean jwkValidationKey = validationKey.startsWith("{");
             if (jwsDecoder.getSignatureAlgorithm().isSymmetric()) {
-                jwsValidator = new JwsHmacValidator(DebugFormatter.getByteArrayFromHex(validationKey));
+                jwsValidator = new JwsHmacValidator(CreateServlet.decodeSymmetricKey(validationKey));
             } else {
                 jwsValidator = new JwsAsymSignatureValidator(jwkValidationKey ? 
                         JSONParser.parse(validationKey).getCorePublicKey(AlgorithmPreferences.JOSE)
@@ -110,15 +108,15 @@ public class ValidateServlet extends HttpServlet {
             }
             jwsValidator.validate(jwsDecoder);
             StringBuilder html = new StringBuilder(
-                    "<div class='header'> Signature Successfully Validated</div>")
+                    "<div class='header'>Signature Successfully Validated</div>")
                 .append(HTML.fancyBox("signed", 
                                       prettySignature, 
                                       "\"Pretty-printed\" JWS/CT object"))           
-                .append(HTML.fancyBox("header", 
-                                      jwsDecoder.getJwsHeaderAsString(),
+                .append(HTML.fancyCode("header", 
+                                       jwsDecoder.getJwsHeaderAsString(),
                                       "Decoded JWS header"))
-                .append(HTML.fancyBox("canonical", 
-                                      HTML.encode(new String(jwsDecoder.getPayload(), "utf-8")),
+                .append(HTML.fancyCode("canonical", 
+                                       new String(jwsDecoder.getPayload(), "utf-8"),
                                       "Canonical (RFC 8785) version of the signed JSON data " +
                                         "(\"JWS Payload\")"))
                 .append(HTML.fancyBox("vkey",
@@ -126,17 +124,19 @@ public class ValidateServlet extends HttpServlet {
                                           JSONParser.parse(validationKey)
                                               .serializeToString(JSONOutputFormats.PRETTY_HTML)
                                                        :
-                                      HTML.encode(validationKey).replace("\n", "<br>"),
-                                      "Signature validation " +
-                                      (jwsDecoder.getSignatureAlgorithm().isSymmetric() ? 
-                                             "secret key in hexadecimal" :
-                                             "public key in " + 
-                                             (jwkValidationKey ? "JWK" : "PEM") +
-                                             " format")));
+                                          HTML.encode(validationKey, true),
+                          "Signature validation " +
+                              (jwsDecoder.getSignatureAlgorithm().isSymmetric() ?
+                             "secret key " +
+                             (validationKey.startsWith("@") ? "string value" : "in hexadecimal")
+                                                                                :
+                             "public key in " + 
+                             (jwkValidationKey ? "JWK" : "PEM") +
+                             " format")));
             if (certificateData != null) {
-                html.append(HTML.fancyBox("certpath", 
-                                          certificateData.toString(),
-                                          "Core certificate data"));
+                html.append(HTML.fancyCode("certpath", 
+                                           certificateData.toString(),
+                                           "Core certificate data"));
             }
             html.append(HTML.fancyBox("original", 
                                       new StringBuilder(jwsString)
@@ -160,18 +160,18 @@ public class ValidateServlet extends HttpServlet {
             .append(HTML.fancyText(true,
                 JWS_OBJECT,
                 10, 
-                HTML.encode(JwsCtService.sampleSignature),
+                JwsCtService.sampleSignature,
                 "Paste a signed JSON object in the text box or try with the default"))
             .append(HTML.fancyText(true,
                 JWS_VALIDATION_KEY,
                 4, 
-                HTML.encode(JwsCtService.samplePublicKey),
-                            "Validation key (secret key in hexadecimal or public " +
-                              "key in PEM or &quot;plain&quot; JWK format)"))
+                JwsCtService.samplePublicKey,
+                "Validation key: secret key in hexadecimal or @string or public " +
+                "key in PEM or &quot;plain&quot; JWK format"))
             .append(HTML.fancyText(true,
                 JWS_SIGN_LABL,
                 1, 
-                HTML.encode(CreateServlet.DEFAULT_SIG_LBL),
+                CreateServlet.DEFAULT_SIG_LBL,
                 "Anticipated signature label"))
             .append(
                 "<div style='display:flex;justify-content:center'>" +

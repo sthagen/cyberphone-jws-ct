@@ -35,7 +35,10 @@ public class HomeServlet extends HttpServlet {
             "<div class='header'>JSON Clear Text Signature</div>" +
             "<div style='padding-top:15pt'>This site permits testing and debugging " +
             "a scheme for \"Clear&nbsp;Text\" JSON signatures tentatively targeted for " +
-            "publication as an IETF RFC.  For detailed technical information and " +
+            "publication as an <a href='" +
+            "https://www.ietf.org/archive/id/draft-jordan-jws-ct-02.html" +
+            "' target='_blank'>IETF RFC</a>. " +
+            "For detailed technical information and " +
             "open source code, click on the JWS/CT logotype.</div>" +
             "<div style='display:flex;justify-content:center'><table>" +
             "<tr><td><div class='multibtn' " +
@@ -53,6 +56,21 @@ public class HomeServlet extends HttpServlet {
             "title='&quot;Experimental&quot; - WebCrypto'>" +
             "&quot;Experimental&quot; - WebCrypto" +
             "</div></td></tr>" +
+            "<tr><td><div class='multibtn' " +
+            "onclick=\"document.location.href='hash'\" " +
+            "title='Canonicalize and Hash JSON'>" +
+            "Canonicalize and Hash JSON" +
+            "</div></td></tr>" +
+            "<tr><td><div class='multibtn' " +
+            "onclick=\"document.location.href='keyconv'\" " +
+            "title='Convert JWK &lt;-&gt; PEM keys'>" +
+            "Convert JWK &lt;-&gt; PEM Keys" +
+            "</div></td></tr>" +
+            "<tr><td><div class='multibtn' " +
+            "onclick=\"document.location.href='dumpasn1'\" " +
+            "title='Dump PEM as ASN.1'>" +
+            "Dump PEM as ASN.1" +
+            "</div></td></tr>" +   
             "</table></div>" +
             "<div class='sitefooter'>Privacy/security notice: No user provided data is " +
             "ever stored or logged on the server; it only processes the data and returns the " +

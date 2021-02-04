@@ -50,8 +50,12 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
 
     static String sampleSignature;
     
+    static String sampleJsonForHashing;
+    
     static String samplePublicKey;
     
+    static String sampleKeyConversionKey;
+
     static String keyDeclarations;
     
     static boolean logging;
@@ -94,7 +98,7 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
                 decl.append("\n    ")
                     .append(algId)
                     .append(": '")
-                    .append(HTML.javaScript(getEmbeddedResourceString(fileOrNull + base).trim()))
+                    .append(HTML.javaScript(getEmbeddedResourceString(fileOrNull + base)))
                     .append('\'');
                 last = algId;
             }
@@ -115,7 +119,7 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
     }
     
     String getEmbeddedResourceString(String name) throws IOException {
-        return new String(getEmbeddedResource(name), "utf-8");
+        return new String(getEmbeddedResource(name), "utf-8").trim();
     }
 
     @Override
@@ -161,6 +165,16 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
                           .addKey(HmacAlgorithms.HMAC_SHA512,            "a512").toString();
 
             /////////////////////////////////////////////////////////////////////////////////////////////
+            // Sample data for hashing
+            /////////////////////////////////////////////////////////////////////////////////////////////
+            sampleJsonForHashing = getEmbeddedResourceString("sample-data-to-hash.json");
+
+            /////////////////////////////////////////////////////////////////////////////////////////////
+            // Sample key for converting
+            /////////////////////////////////////////////////////////////////////////////////////////////
+            sampleKeyConversionKey = getEmbeddedResourceString("ed25519privatekey.pem");
+
+            /////////////////////////////////////////////////////////////////////////////////////////////
             // Sample signature for verification
             /////////////////////////////////////////////////////////////////////////////////////////////
             String sampleDataToSign = getEmbeddedResourceString("sample-data-to-sign.json");
@@ -178,13 +192,14 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
             sampleSignature = sampleDataToSign.substring(0, sampleDataToSign.lastIndexOf('}')) +
                               "," +
                               signature.substring(signature.indexOf("\n "));
-            samplePublicKey = getEmbeddedResourceString("p256publickey.pem").trim();
+            samplePublicKey = getEmbeddedResourceString("p256publickey.pem");
+
             /////////////////////////////////////////////////////////////////////////////////////////////
             // Logging?
             /////////////////////////////////////////////////////////////////////////////////////////////
             logging = getPropertyBoolean("logging");
 
-            logger.info("JWS-JWS Demo Successfully Initiated");
+            logger.info("JWS/CT Demo Successfully Initiated");
         } catch (Exception e) {
             logger.log(Level.SEVERE, "********\n" + e.getMessage() + "\n********", e);
         }
