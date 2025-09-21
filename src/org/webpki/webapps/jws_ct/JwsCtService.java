@@ -131,9 +131,9 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
         initProperties(event);
         CustomCryptoProvider.forcedLoad(false);
         try {
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             // Keys
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             keyDeclarations = 
                     new KeyDeclaration(KeyDeclaration.PRIVATE_KEYS, "privatekey.pem")
                           .addKey(AsymSignatureAlgorithms.ED25519,       "ed25519")
@@ -164,19 +164,19 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
                           .addKey(HmacAlgorithms.HMAC_SHA384,            "a384")
                           .addKey(HmacAlgorithms.HMAC_SHA512,            "a512").toString();
 
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             // Sample data for hashing
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             sampleJsonForHashing = getEmbeddedResourceString("sample-data-to-hash.json");
 
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             // Sample key for converting
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             sampleKeyConversionKey = getEmbeddedResourceString("ed25519privatekey.pem");
 
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             // Sample signature for verification
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             String sampleDataToSign = getEmbeddedResourceString("sample-data-to-sign.json");
             PrivateKey samplePrivateKey = 
                     PEMDecoder.getPrivateKey(getEmbeddedResource("p256privatekey.pem"));
@@ -194,9 +194,9 @@ public class JwsCtService extends InitPropertyReader implements ServletContextLi
                               signature.substring(signature.indexOf("\n "));
             samplePublicKey = getEmbeddedResourceString("p256publickey.pem");
 
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             // Logging?
-            /////////////////////////////////////////////////////////////////////////////////////////////
+            //=========================================================================================//
             logging = getPropertyBoolean("logging");
 
             logger.info("JWS/CT Demo Successfully Initiated");
